@@ -1,5 +1,5 @@
 const express = require('express');
-const { Register, Login, getProducts, ResetPassword, Welcome,ForgetPassword, UpdatePasswordWithToken } = require('../Controllers/userController');
+const { Register, Login, getProducts, ResetPassword, Welcome,ForgetPassword, UpdatePasswordWithToken, generateTokenAndMailToVerifyEmail, VerifyEmailWithToken } = require('../Controllers/userController');
 const { VerifyUser } = require('../Middlewares/Auth');
 
 const router= express.Router();
@@ -56,11 +56,15 @@ const router= express.Router();
  *       type: object
  *       required:
  *         - email 
+ *         - base_url
  *       properties:
  *         email :
  *           type: email
+ *         base_url :
+ *           type: string
  *       example:
  *         email: "test@gmail.com"
+ *         base_url: "http://localhost:8080"
  *     Reset:
  *       type: object
  *       required:
@@ -78,9 +82,23 @@ const router= express.Router();
  *         email: "test@gmail.com"
  *         token: "c0b8d3e6e674f28e1df4e829a515e6f5"
  *         password: "123456"
+ *     Verify:
+ *       type: object
+ *       required:
+ *         - email
+ *         - token
+ *         - password
+ *       properties:
+ *         email :
+ *           type: email
+ *         token :
+ *           type: string
+ *       example:
+ *         email: "test@gmail.com"
+ *         token: "c0b8d3e6e674f28e1df4e829a515e6f5"
  */
 
-
+// --------------------------- API's Start -----------------
 /**
  * @swagger
  * tags:
@@ -113,32 +131,7 @@ const router= express.Router();
 router.route('/register').post(Register)
 
 
-/**
- * @swagger
- * tags:
- *   name: Private Resource
- *   description: This is the private data specific to user
- * /private:
- *   get:
- *     summary: User Authenticated resource
- *     tags: [Private Resource]
- *     parameters:
- *     - name: auth-token
- *       in: header
- *       description : Its jwt token should be given with request if needed for specific user
- *       required: false
- *       type: string
- *     responses:
- *       200:
- *         description: Dashboard 
- *       500:
- *         description: Internal server error
- *       401:
- *         description: User Not Authorised
- * 
- *
- */
-router.route('/private').get(VerifyUser,getProducts)
+
 
 
 /**
@@ -173,6 +166,33 @@ router.route('/private').get(VerifyUser,getProducts)
  */
 
 router.route('/login').post( Login)
+
+/**
+ * @swagger
+ * tags:
+ *   name: Private Resource
+ *   description: This is the private data specific to user
+ * /private:
+ *   get:
+ *     summary: User Authenticated resource
+ *     tags: [Private Resource]
+ *     parameters:
+ *     - name: auth-token
+ *       in: header
+ *       description : Its jwt token should be given with request if needed for specific user
+ *       required: false
+ *       type: string
+ *     responses:
+ *       200:
+ *         description: Dashboard 
+ *       500:
+ *         description: Internal server error
+ *       401:
+ *         description: User Not Authorised
+ * 
+ *
+ */
+router.route('/private').get(VerifyUser,getProducts)
 
 /**
  * @swagger
@@ -232,7 +252,6 @@ router.route('/reset-password').post(  ResetPassword)
  */
 router.route('/forget-password').post(ForgetPassword)
 
-
 /**
  * @swagger
  * tags:
@@ -260,6 +279,67 @@ router.route('/forget-password').post(ForgetPassword)
  *
  */
 router.route('/reset-password-with-token').post(UpdatePasswordWithToken)
+
+/**
+ * @swagger
+ * tags:
+ *   name: Generate Token and Email to verify User
+ *   description: It Lets User to send an email with token to verify email of user
+ * /generate-token-to-verify-email:
+ *   post:
+ *     summary: It Lets User to send an email with token to verify email of user which is valid for 3 mins
+ *     tags: [Generate Token and Email to verify User]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Email'
+ *     responses:
+ *       200:
+ *         description: Email sent with token
+ *       409:
+ *         description: User Already Verified
+ *       500:
+ *         description: Internal server err or
+ *       400:
+ *         description: User Not Found
+ *
+ */
+router.route('/generate-token-to-verify-email').post(generateTokenAndMailToVerifyEmail)
+
+
+/**
+ * @swagger
+ * tags:
+ *   name: Verify User With Token
+ *   description: It Lets User verify Email by input token sent on email   
+ * /verify-user-with-token:
+ *   post:
+ *     summary: It Lets User verify Email by input token sent on email 
+ *     tags: [Verify User With Token]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Verify'
+ *     responses:
+ *       200:
+ *         description: User Verified 
+ *       500:
+ *         description: Internal server err or
+ *       400:
+ *         description: User Not Found
+ *       401:
+ *         description: Wrong Token
+ *       402:
+ *         description: Token Expired
+ *
+ */
+
+router.route('/verify-user-with-token').post(VerifyEmailWithToken)
+
 router.route('/').get(Welcome)
 
 module.exports = router
